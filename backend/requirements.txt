@@ -1,0 +1,6 @@
+fastapi
+uvicorn[standard]
+sqlmodel
+livekit-api
+python-dotenv
+aiohttp

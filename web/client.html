@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1"
+		/>
+		<title>Customer call</title>
+		<script src="https://cdn.jsdelivr.net/npm/livekit-client@2/dist/livekit-client.umd.min.js"></script>
+		<style>
+			:root {
+				--bg: #f4f6f9;
+				--surface: #ffffff;
+				--surface-2: #f1f3f7;
+				--border: #e3e7ee;
+				--text: #18202b;
+				--muted: #637083;
+				--accent: #2563eb;
+				--accent-hover: #1d4ed8;
+				--danger: #dc2626;
+				--danger-hover: #b91c1c;
+				--agent-bubble: #eef2fb;
+				--agent-label: #2563eb;
+				--user-bubble: #2563eb;
+				--user-text: #ffffff;
+				--user-label: #15803d;
+				--shadow: 0 1px 2px rgb(16 24 40 / 0.04),
+					0 8px 24px rgb(16 24 40 / 0.06);
+				--radius: 14px;
+			}
+			@media (prefers-color-scheme: dark) {
+				:root {
+					--bg: #0f1218;
+					--surface: #171b23;
+					--surface-2: #1e232d;
+					--border: #2a303c;
+					--text: #e6e9ef;
+					--muted: #8b95a5;
+					--accent: #3b82f6;
+					--accent-hover: #60a5fa;
+					--danger: #ef4444;
+					--danger-hover: #f87171;
+					--agent-bubble: #222936;
+					--agent-label: #60a5fa;
+					--user-bubble: #2563eb;
+					--user-label: #4ade80;
+					--shadow: 0 1px 2px rgb(0 0 0 / 0.3),
+						0 8px 24px rgb(0 0 0 / 0.3);
+				}
+			}
+			* {
+				box-sizing: border-box;
+			}
+			body {
+				margin: 0;
+				min-height: 100vh;
+				background: var(--bg);
+				color: var(--text);
+				font-family:
+					system-ui,
+					-apple-system,
+					"Segoe UI",
+					Roboto,
+					sans-serif;
+				line-height: 1.5;
+				padding: 2.5rem 1rem;
+			}
+			.card {
+				max-width: 640px;
+				margin: 0 auto;
+				background: var(--surface);
+				border: 1px solid var(--border);
+				border-radius: var(--radius);
+				box-shadow: var(--shadow);
+				padding: 1.75rem;
+			}
+			h1 {
+				margin: 0;
+				font-size: 1.4rem;
+				letter-spacing: -0.01em;
+			}
+			.sub {
+				margin: 0.25rem 0 1.5rem;
+				color: var(--muted);
+				font-size: 0.95rem;
+			}
+			.row {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.6rem;
+				align-items: center;
+				margin-bottom: 1rem;
+			}
+			select,
+			button {
+				font: inherit;
+				font-size: 0.95rem;
+				height: 2.6rem;
+				border-radius: 10px;
+				padding: 0 1rem;
+			}
+			select {
+				flex: 1 1 200px;
+				min-width: 0;
+				background: var(--surface-2);
+				color: var(--text);
+				border: 1px solid var(--border);
+				cursor: pointer;
+			}
+			select:focus-visible,
+			button:focus-visible {
+				outline: 2px solid var(--accent);
+				outline-offset: 2px;
+			}
+			button {
+				border: none;
+				font-weight: 600;
+				color: #fff;
+				cursor: pointer;
+				transition:
+					background 0.15s,
+					opacity 0.15s,
+					transform 0.05s;
+			}
+			button:active:not(:disabled) {
+				transform: translateY(1px);
+			}
+			button:disabled {
+				opacity: 0.4;
+				cursor: not-allowed;
+			}
+			#call {
+				background: var(--accent);
+			}
+			#call:hover:not(:disabled) {
+				background: var(--accent-hover);
+			}
+			#hangup {
+				background: var(--danger);
+			}
+			#hangup:hover:not(:disabled) {
+				background: var(--danger-hover);
+			}
+			#status {
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+				margin: 0 0 1rem;
+				min-height: 1.5em;
+				color: var(--muted);
+				font-size: 0.9rem;
+			}
+			#status::before {
+				content: "";
+				width: 8px;
+				height: 8px;
+				border-radius: 50%;
+				background: currentColor;
+				flex: none;
+			}
+			#transcript {
+				display: flex;
+				flex-direction: column;
+				gap: 0.6rem;
+				height: 380px;
+				overflow-y: auto;
+				padding: 1rem;
+				background: var(--surface-2);
+				border: 1px solid var(--border);
+				border-radius: 12px;
+				scroll-behavior: smooth;
+			}
+			#transcript:empty::before {
+				content: "The conversation transcript will appear here.";
+				margin: auto;
+				color: var(--muted);
+				font-size: 0.9rem;
+			}
+			.line {
+				display: flex;
+				flex-direction: column;
+				align-items: flex-start;
+				max-width: 80%;
+			}
+			.line.user {
+				align-self: flex-end;
+				align-items: flex-end;
+			}
+			.who {
+				font-size: 0.7rem;
+				font-weight: 700;
+				letter-spacing: 0.06em;
+				text-transform: uppercase;
+				margin: 0 0.4rem 0.2rem;
+			}
+			.line.agent .who {
+				color: var(--agent-label);
+			}
+			.line.user .who {
+				color: var(--user-label);
+			}
+			.txt {
+				padding: 0.55rem 0.85rem;
+				border-radius: 14px;
+				word-wrap: break-word;
+				transition: opacity 0.2s;
+			}
+			.line.agent .txt {
+				background: var(--agent-bubble);
+				border-bottom-left-radius: 4px;
+			}
+			.line.user .txt {
+				background: var(--user-bubble);
+				color: var(--user-text);
+				border-bottom-right-radius: 4px;
+			}
+			.line.interim .txt {
+				opacity: 0.55;
+				font-style: italic;
+			}
+			@media (max-width: 480px) {
+				body {
+					padding: 1rem;
+				}
+				.card {
+					padding: 1.25rem;
+				}
+				.line {
+					max-width: 92%;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<main class="card">
+			<h1>Call a support agent</h1>
+			<p class="sub">Pick an agent and start a voice call from your browser.</p>
+			<div class="row">
+				<select id="agent"></select>
+				<button id="call">Call</button>
+				<button
+					id="hangup"
+					disabled
+				>
+					Hang up
+				</button>
+			</div>
+			<p id="status">Idle</p>
+			<div id="transcript"></div>
+		</main>
+		<div id="audio"></div>
+
+		<script>
+			const API = "http://localhost:8000";
+			const { Room, RoomEvent, Track } = LivekitClient;
+
+			const agentSel = document.getElementById("agent");
+			const callBtn = document.getElementById("call");
+			const hangupBtn = document.getElementById("hangup");
+			const statusEl = document.getElementById("status");
+			const audioBox = document.getElementById("audio");
+			const transcriptEl = document.getElementById("transcript");
+			let room = null;
+			const segmentRows = new Map(); // segment id -> row element
+
+			const setStatus = (t) => (statusEl.textContent = t);
+
+			function resetButtons() {
+				callBtn.disabled = false;
+				hangupBtn.disabled = true;
+			}
+
+			function onTranscription(segments, participant) {
+				const isUser =
+					participant &&
+					participant.identity === room.localParticipant.identity;
+				const label = isUser ? "user" : "agent";
+				for (const seg of segments) {
+					let row = segmentRows.get(seg.id);
+					if (!row) {
+						row = document.createElement("div");
+						row.className = `line ${label}`;
+						const who = document.createElement("span");
+						who.className = "who";
+						who.textContent = label;
+						const txt = document.createElement("span");
+						txt.className = "txt";
+						row.append(who, txt);
+						transcriptEl.appendChild(row);
+						segmentRows.set(seg.id, row);
+					}
+					row.querySelector(".txt").textContent = seg.text;
+					row.classList.toggle("interim", !seg.final);
+				}
+				transcriptEl.scrollTop = transcriptEl.scrollHeight;
+			}
+
+			async function loadAgents() {
+				try {
+					const r = await fetch(`${API}/agents`);
+					const agents = await r.json();
+					agentSel.innerHTML = agents
+						.map((a) => `<option value="${a.id}">${a.name}</option>`)
+						.join("");
+				} catch (e) {
+					setStatus("Could not load agents: " + e.message);
+				}
+			}
+
+			async function startCall() {
+				callBtn.disabled = true;
+				transcriptEl.innerHTML = "";
+				segmentRows.clear();
+				setStatus("Creating call…");
+				try {
+					const r = await fetch(`${API}/calls`, {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ agent_id: Number(agentSel.value) }),
+					});
+					if (!r.ok) throw new Error(await r.text());
+					const call = await r.json();
+
+					// Ask for mic permission BEFORE connecting (needed for WebRTC with Docker here)
+					setStatus("Requesting microphone…");
+					const mic = await navigator.mediaDevices.getUserMedia({
+						audio: true,
+					});
+					mic.getTracks().forEach((t) => t.stop());
+
+					room = new Room();
+					room.on(RoomEvent.TrackSubscribed, (track) => {
+						if (track.kind === Track.Kind.Audio)
+							audioBox.appendChild(track.attach());
+					});
+					room.on(RoomEvent.TrackUnsubscribed, (track) =>
+						track.detach().forEach((el) => el.remove()),
+					);
+					room.on(RoomEvent.TranscriptionReceived, onTranscription);
+					room.on(RoomEvent.ParticipantConnected, () =>
+						setStatus("Agent joined, listen for the greeting…"),
+					);
+					room.on(RoomEvent.Disconnected, () => {
+						setStatus("Call ended");
+						resetButtons();
+					});
+
+					await room.connect(call.livekit_url, call.token);
+					try {
+						await room.startAudio();
+					} catch (_) {}
+					await room.localParticipant.setMicrophoneEnabled(true);
+					setStatus(`In call #${call.call_id}, waiting for the agent…`);
+					hangupBtn.disabled = false;
+				} catch (e) {
+					setStatus("Error: " + e.message);
+					resetButtons();
+				}
+			}
+
+			callBtn.onclick = startCall;
+			hangupBtn.onclick = () => room && room.disconnect();
+			loadAgents();
+		</script>
+	</body>
+</html>

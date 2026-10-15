@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1"
+		/>
+		<title>Vexa Voice</title>
+		<style>
+			:root {
+				--bg: #f4f6f9;
+				--surface: #ffffff;
+				--border: #e3e7ee;
+				--text: #18202b;
+				--muted: #637083;
+				--accent: #2563eb;
+				--accent-hover: #1d4ed8;
+				--operator: #15803d;
+				--operator-hover: #166534;
+				--shadow: 0 1px 2px rgb(16 24 40 / 0.04),
+					0 8px 24px rgb(16 24 40 / 0.06);
+				--radius: 14px;
+			}
+			@media (prefers-color-scheme: dark) {
+				:root {
+					--bg: #0f1218;
+					--surface: #171b23;
+					--border: #2a303c;
+					--text: #e6e9ef;
+					--muted: #8b95a5;
+					--accent: #3b82f6;
+					--accent-hover: #60a5fa;
+					--operator: #22c55e;
+					--operator-hover: #4ade80;
+					--shadow: 0 1px 2px rgb(0 0 0 / 0.3),
+						0 8px 24px rgb(0 0 0 / 0.3);
+				}
+			}
+			* {
+				box-sizing: border-box;
+			}
+			body {
+				margin: 0;
+				min-height: 100vh;
+				background: var(--bg);
+				color: var(--text);
+				font-family:
+					system-ui,
+					-apple-system,
+					"Segoe UI",
+					Roboto,
+					sans-serif;
+				line-height: 1.5;
+				padding: 2.5rem 1rem;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+			}
+			main {
+				width: 100%;
+				max-width: 720px;
+			}
+			header {
+				text-align: center;
+				margin-bottom: 2rem;
+			}
+			h1 {
+				margin: 0;
+				font-size: 1.75rem;
+				letter-spacing: -0.01em;
+			}
+			header p {
+				margin: 0.5rem 0 0;
+				color: var(--muted);
+			}
+			.options {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+				gap: 1rem;
+			}
+			.option {
+				display: flex;
+				flex-direction: column;
+				gap: 0.75rem;
+				background: var(--surface);
+				border: 1px solid var(--border);
+				border-radius: var(--radius);
+				box-shadow: var(--shadow);
+				padding: 1.75rem;
+				color: inherit;
+				text-decoration: none;
+				transition:
+					transform 0.15s ease,
+					border-color 0.15s ease;
+			}
+			.option:hover,
+			.option:focus-visible {
+				transform: translateY(-2px);
+				border-color: var(--c);
+				outline: none;
+			}
+			.option.user {
+				--c: var(--accent);
+				--c-hover: var(--accent-hover);
+			}
+			.option.operator {
+				--c: var(--operator);
+				--c-hover: var(--operator-hover);
+			}
+			.icon {
+				width: 44px;
+				height: 44px;
+				border-radius: 12px;
+				display: grid;
+				place-items: center;
+				background: color-mix(in srgb, var(--c) 14%, transparent);
+				color: var(--c);
+			}
+			.option h2 {
+				margin: 0;
+				font-size: 1.15rem;
+			}
+			.option p {
+				margin: 0;
+				color: var(--muted);
+				font-size: 0.95rem;
+				flex: 1;
+			}
+			.cta {
+				align-self: flex-start;
+				background: var(--c);
+				color: #fff;
+				font-weight: 600;
+				font-size: 0.95rem;
+				padding: 0.55rem 1.1rem;
+				border-radius: 10px;
+			}
+			.option:hover .cta {
+				background: var(--c-hover);
+			}
+		</style>
+	</head>
+	<body>
+		<main>
+			<header>
+				<h1>Vexa Voice</h1>
+				<p>Operator-guided voice AI support line</p>
+			</header>
+			<div class="options">
+				<a class="option user" href="client.html">
+					<span class="icon" aria-hidden="true">
+						<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+					</span>
+					<h2>Join as user</h2>
+					<p>Pick an AI agent and talk to it in real time.</p>
+					<span class="cta">Start a call</span>
+				</a>
+				<a class="option operator" href="operator.html">
+					<span class="icon" aria-hidden="true">
+						<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+					</span>
+					<h2>Join as operator</h2>
+					<p>Silently listen in on live calls, read the transcript and whisper instructions to the agent.</p>
+					<span class="cta">Open console</span>
+				</a>
+			</div>
+		</main>
+	</body>
+</html>

@@ -1,0 +1,25 @@
+# Secrets
+.env
+.env.*
+!.env.example
+livekit.yaml
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Runtime data
+*.db
+*.sqlite3
+latency.jsonl
+agent/data/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

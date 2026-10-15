@@ -1,0 +1,45 @@
+services:
+  livekit:
+    image: livekit/livekit-server:latest
+    command: --config /etc/livekit.yaml
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml
+    ports:
+      - "7880:7880/tcp"
+      - "7881:7881/tcp"
+      - "50000-50100:50000-50100/udp"
+
+  backend:
+    build: ./backend
+    env_file: ./backend/.env
+    environment:
+      LIVEKIT_URL: ws://localhost:7880 # what the browser connects to
+      LIVEKIT_INTERNAL_URL: http://livekit:7880 # what the backend itself calls
+      DB_PATH: /data/voice.db
+    volumes:
+      - backend-data:/data
+    ports:
+      - "8000:8000"
+    depends_on: [ livekit ]
+
+  agent:
+    build: ./agent
+    env_file: ./agent/.env
+    environment:
+      LIVEKIT_URL: ws://livekit:7880
+      BACKEND_URL: http://backend:8000
+      LATENCY_FILE: /data/latency.jsonl
+    volumes:
+      - ./agent/data:/data
+    depends_on: [ livekit, backend ]
+    restart: unless-stopped
+
+  web:
+    image: nginx:alpine
+    volumes:
+      - ./web:/usr/share/nginx/html:ro
+    ports:
+      - "5500:80"
+
+volumes:
+  backend-data:

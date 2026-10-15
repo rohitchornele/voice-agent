@@ -1,0 +1,3 @@
+livekit-agents[openai,deepgram,silero,turn-detector]==1.8.8
+python-dotenv
+aiohttp
