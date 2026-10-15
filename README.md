@@ -29,6 +29,8 @@ Everything runs locally with Docker Compose, including the LiveKit media server 
 
 ## Architecture
 
+> URL : https://excalidraw.com/#json=ZrOsXnmg4TmENLeD1mmBh,Rq2a_Iy782L7FCjEd3NvCg
+
 ```mermaid
 flowchart LR
     C["Customer browser<br/>web/client.html"]
