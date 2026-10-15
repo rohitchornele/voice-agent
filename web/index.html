@@ -18,6 +18,8 @@
 				--accent-hover: #1d4ed8;
 				--operator: #15803d;
 				--operator-hover: #166534;
+				--report: #7c3aed;
+				--report-hover: #6d28d9;
 				--shadow: 0 1px 2px rgb(16 24 40 / 0.04),
 					0 8px 24px rgb(16 24 40 / 0.06);
 				--radius: 14px;
@@ -33,6 +35,8 @@
 					--accent-hover: #60a5fa;
 					--operator: #22c55e;
 					--operator-hover: #4ade80;
+					--report: #8b5cf6;
+					--report-hover: #a78bfa;
 					--shadow: 0 1px 2px rgb(0 0 0 / 0.3),
 						0 8px 24px rgb(0 0 0 / 0.3);
 				}
@@ -59,7 +63,7 @@
 			}
 			main {
 				width: 100%;
-				max-width: 720px;
+				max-width: 960px;
 			}
 			header {
 				text-align: center;
@@ -107,6 +111,10 @@
 			.option.operator {
 				--c: var(--operator);
 				--c-hover: var(--operator-hover);
+			}
+			.option.report {
+				--c: var(--report);
+				--c-hover: var(--report-hover);
 			}
 			.icon {
 				width: 44px;
@@ -163,6 +171,14 @@
 					<h2>Join as operator</h2>
 					<p>Silently listen in on live calls, read the transcript and whisper instructions to the agent.</p>
 					<span class="cta">Open console</span>
+				</a>
+				<a class="option report" href="report.html">
+					<span class="icon" aria-hidden="true">
+						<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="m9 15 2 2 4-4"/></svg>
+					</span>
+					<h2>View call reports</h2>
+					<p>Review finished calls: full transcript plus pass/fail compliance checks.</p>
+					<span class="cta">Open reports</span>
 				</a>
 			</div>
 		</main>

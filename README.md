@@ -3,7 +3,8 @@
 A browser-based voice support line. A customer picks an AI agent and talks to it in real time over WebRTC.
 A human operator can join any live call **invisibly**, listen in, read the live transcript and **whisper**
 private instructions that the agent follows from its next reply on. When the call ends, the full transcript is saved
-and two compliance checks are run on it automatically.
+and two compliance checks are run on it automatically. A call report page shows the transcript and the
+pass/fail result of each check.
 
 Everything runs locally with Docker Compose, including the LiveKit media server (no LiveKit Cloud).
 
@@ -32,6 +33,7 @@ Everything runs locally with Docker Compose, including the LiveKit media server 
 flowchart LR
     C["Customer browser<br/>web/client.html"]
     O["Operator browser<br/>web/operator.html"]
+    R["Report page<br/>web/report.html"]
     B["Backend (FastAPI)<br/>:8000 · SQLite"]
     L["LiveKit server<br/>:7880 / :7881 / UDP 50000-50100"]
     A["Agent worker<br/>livekit-agents"]
@@ -40,6 +42,7 @@ flowchart LR
 
     C -- "POST /calls → token" --> B
     O -- "GET /calls · POST operator-token" --> B
+    R -- "GET /calls · GET /calls/{id}" --> B
     B -- "create room + dispatch agent" --> L
     C <-- "audio + transcription (WebRTC)" --> L
     O <-- "listen (hidden) + whisper data packet" --> L
@@ -98,8 +101,10 @@ voice-agent/
 │   ├── Dockerfile
 │   └── requirements.txt
 ├── web/
+│   ├── index.html         # start page: links to the three pages below
 │   ├── client.html        # customer page
-│   └── operator.html      # operator console
+│   ├── operator.html      # operator console
+│   └── report.html        # call report: compliance results + transcript
 └── tokens.py              # early LiveKit smoke-test token generator
 ```
 
@@ -187,6 +192,7 @@ On the first build, the agent image downloads the Silero VAD and turn-detector m
 | Start page | <http://localhost:5500/> |
 | Customer page | <http://localhost:5500/client.html> |
 | Operator console | <http://localhost:5500/operator.html> |
+| Call reports | <http://localhost:5500/report.html> |
 | Backend API docs (Swagger) | <http://localhost:8000/docs> |
 | LiveKit signalling | `ws://localhost:7880` |
 
@@ -233,7 +239,22 @@ You can also create your own agents with `POST /agents` (see the [API reference]
 
 ### After the call
 
-Get the full record, including the transcript and compliance result:
+Open <http://localhost:5500/report.html> (or **View call reports** on the start page).
+
+1. Pick a call from the dropdown. The newest call is selected by default. To open a specific call directly, use
+   `report.html?call=<call_id>`.
+2. The banner at the top shows the overall verdict: **ALL CHECKS PASSED**, **COMPLIANCE FAILED**, or
+   *Running checks...* / *Waiting for the call to end* while the result isn't ready yet.
+3. Under **Compliance checks**, each rule shows **PASS**, **FAIL** or **ERROR**, whether it was an LLM or a
+   deterministic check, the reason, and the quoted line. A quote from the LLM is marked as verified when it was found
+   in the transcript.
+4. Under **Transcript**, every line is listed with its start and end time, speaker, and an *interrupted* tag where
+   the customer cut the agent off.
+
+The page polls the backend every 2 s while a call is still in progress or its checks are pending, and stops once the
+result is final. Click **Refresh** to reload the list of calls.
+
+You can also get the raw record, including the transcript and compliance result, from the API:
 
 ```bash
 curl http://localhost:8000/calls/<call_id>
@@ -388,7 +409,8 @@ Example result:
 }
 ```
 
-Use **Riley (non-compliant demo)** to see both checks fail, and **Maya** to see both pass.
+Use **Riley (non-compliant demo)** to see both checks fail, and **Maya** to see both pass. The results are easiest to
+read on the [call report page](#after-the-call).
 
 ## Latency
 
@@ -444,6 +466,7 @@ Run these from `agent/` (they read `agent/.env`):
 | `LiveKit error` (502) from `POST /calls` | The backend can't reach LiveKit, or the API key/secret in `backend/.env` doesn't match `livekit.yaml`. |
 | Connected but no audio either way | UDP 50000-50100 is blocked or already in use. Check the firewall; media falls back to TCP 7881. |
 | Browser connects only after granting the mic | Intended: both pages request mic permission **before** connecting, so the browser exposes usable ICE candidates instead of mDNS-only ones for Docker. |
+| Call report says "Could not reach the backend" | The backend isn't running on `localhost:8000`. `report.html` calls that address directly. |
 | CORS error in the browser console | Serve the pages from port 5500 (or 5173), or add your origin to `allow_origins` in `backend/main.py`. |
 | Operator sees "call is not active" (409) | The customer hasn't joined yet, or the call has already ended. Refresh the list. |
 | `compliance.status` stays `pending` | The refund check is still running, or failed. Check `docker compose logs backend`. |

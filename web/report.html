@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Call report</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #1b1f24; --muted: #5b6672; --line: #dfe3e8;
+    --pass: #1a7f4b; --pass-bg: #e3f4ea; --fail: #b42318; --fail-bg: #fde8e6;
+    --warn: #8a5a00; --warn-bg: #fff3d6; --agent: #1f5fbf; --user: #6b3fa0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171b; --card: #1d2227; --text: #e8ebee; --muted: #9aa5b1; --line: #2e353c;
+      --pass: #5fd38d; --pass-bg: #163524; --fail: #ff8a80; --fail-bg: #3b1d1a;
+      --warn: #ffcf66; --warn-bg: #3a2f12; --agent: #7db1ff; --user: #c9a6ff;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 16px; }
+  h2 { font-size: 16px; margin: 28px 0 10px; }
+  .bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+  select, button { font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line);
+                   background: var(--card); color: var(--text); }
+  select { min-width: 280px; max-width: 100%; }
+  button { cursor: pointer; }
+  .meta { color: var(--muted); margin-bottom: 8px; }
+  .verdict { display: inline-block; font-weight: 700; padding: 4px 14px; border-radius: 999px; }
+  .pass { color: var(--pass); background: var(--pass-bg); }
+  .fail { color: var(--fail); background: var(--fail-bg); }
+  .warn { color: var(--warn); background: var(--warn-bg); }
+  .check { background: var(--card); border: 1px solid var(--line); border-left-width: 6px;
+           border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+  .check.pass { border-left-color: var(--pass); }
+  .check.fail { border-left-color: var(--fail); }
+  .check.warn { border-left-color: var(--warn); }
+  .check .top { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .check .name { font-weight: 600; }
+  .badge { font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 999px; }
+  .tag { font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; margin-left: 6px; }
+  .reason { margin-top: 6px; }
+  blockquote { margin: 8px 0 0; padding: 8px 12px; border-left: 3px solid var(--line); color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  tr:last-child td { border-bottom: 0; }
+  td.time { white-space: nowrap; color: var(--muted); font-variant-numeric: tabular-nums; }
+  td.who { font-weight: 600; white-space: nowrap; }
+  td.who.agent { color: var(--agent); }
+  td.who.user { color: var(--user); }
+  .empty { color: var(--muted); padding: 12px 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Call report</h1>
+  <div class="bar">
+    <select id="callSelect" aria-label="Choose a call"></select>
+    <button id="refresh">Refresh</button>
+  </div>
+  <div id="meta" class="meta"></div>
+  <div id="verdict"></div>
+  <h2>Compliance checks</h2>
+  <div id="checks"></div>
+  <h2>Transcript</h2>
+  <div id="transcript"></div>
+</main>
+
+<script>
+const API = "http://localhost:8000";
+const RULE_NAMES = {
+  recording_disclosure_within_30s: "Recording disclosure within 30 s",
+  no_refund_promise: "No refund promise",
+};
+let agents = {};
+let timer = null;
+
+const $ = (id) => document.getElementById(id);
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined && text !== null) e.textContent = text;
+  return e;
+}
+async function getJson(path) {
+  const r = await fetch(API + path);
+  if (!r.ok) throw new Error(path + " returned " + r.status);
+  return r.json();
+}
+
+async function loadList(selectId) {
+  const [agentList, calls] = await Promise.all([getJson("/agents"), getJson("/calls")]);
+  agents = Object.fromEntries(agentList.map((a) => [a.id, a.name]));
+  calls.sort((a, b) => b.id - a.id);
+  const sel = $("callSelect");
+  sel.replaceChildren();
+  calls.forEach((c) => {
+    const o = el("option", "", "#" + c.id + "  " + (agents[c.agent_id] || "agent " + c.agent_id) + "  (" + c.status + ")");
+    o.value = c.id;
+    sel.appendChild(o);
+  });
+  if (!calls.length) {
+    $("meta").textContent = "No calls yet.";
+    return null;
+  }
+  const wanted = selectId && calls.some((c) => String(c.id) === String(selectId)) ? selectId : calls[0].id;
+  sel.value = wanted;
+  return wanted;
+}
+
+function render(c) {
+  const comp = c.compliance;
+  const name = agents[c.agent_id] || "agent " + c.agent_id;
+  $("meta").textContent = "Call #" + c.id + " with " + name + " | status: " + c.status + " | " + (c.transcript || []).length + " transcript lines";
+
+  const v = $("verdict");
+  v.replaceChildren();
+  let label = "Waiting for the call to end";
+  let cls = "warn";
+  if (comp && comp.status === "done") {
+    label = comp.all_passed ? "ALL CHECKS PASSED" : "COMPLIANCE FAILED";
+    cls = comp.all_passed ? "pass" : "fail";
+  } else if (comp && comp.status === "pending") {
+    label = "Running checks...";
+  } else if (c.status === "missed") {
+    label = "Call was never joined";
+  }
+  v.appendChild(el("span", "verdict " + cls, label));
+
+  const checks = $("checks");
+  checks.replaceChildren();
+  const list = (comp && comp.checks) || [];
+  if (!list.length) checks.appendChild(el("div", "empty", "No compliance result yet."));
+  list.forEach((k) => {
+    const state = k.passed === true ? "pass" : k.passed === false ? "fail" : "warn";
+    const word = k.passed === true ? "PASS" : k.passed === false ? "FAIL" : "ERROR";
+    const box = el("div", "check " + state);
+    const top = el("div", "top");
+    const left = el("div");
+    left.appendChild(el("span", "name", RULE_NAMES[k.rule] || k.rule));
+    left.appendChild(el("span", "tag", k.method === "llm" ? "LLM check" : "deterministic"));
+    top.appendChild(left);
+    top.appendChild(el("span", "badge " + state, word));
+    box.appendChild(top);
+    if (k.reason) box.appendChild(el("div", "reason", k.reason));
+    if (k.error) box.appendChild(el("div", "reason", "Error: " + k.error));
+    const quote = k.offending_line || (k.rule === "recording_disclosure_within_30s" && k.passed ? k.line : null);
+    if (quote) {
+      const q = el("blockquote", "", quote);
+      box.appendChild(q);
+      if (k.offending_line && k.line_verified) {
+        box.appendChild(el("div", "reason", "Quote verified against the transcript (line " + k.line_index + ")."));
+      }
+    }
+    checks.appendChild(box);
+  });
+
+  const t = $("transcript");
+  t.replaceChildren();
+  const lines = c.transcript || [];
+  if (!lines.length) {
+    t.appendChild(el("div", "empty", "No transcript yet."));
+    return;
+  }
+  const table = el("table");
+  const head = el("tr");
+  ["Time (s)", "Speaker", "Text"].forEach((h) => head.appendChild(el("th", "", h)));
+  table.appendChild(head);
+  lines.forEach((ln) => {
+    const tr = el("tr");
+    tr.appendChild(el("td", "time", ln.start_s + " to " + ln.end_s));
+    tr.appendChild(el("td", "who " + ln.speaker, ln.speaker));
+    const td = el("td", "", ln.text);
+    if (ln.interrupted) td.appendChild(el("span", "tag", "interrupted"));
+    tr.appendChild(td);
+    table.appendChild(tr);
+  });
+  t.appendChild(table);
+}
+
+async function show(id) {
+  clearTimeout(timer);
+  try {
+    const c = await getJson("/calls/" + id);
+    render(c);
+    const comp = c.compliance;
+    const waiting = c.status === "created" || c.status === "active" ||
+      (c.status === "ended" && (!comp || comp.status === "pending"));
+    if (waiting) timer = setTimeout(() => show(id), 2000);
+  } catch (e) {
+    $("meta").textContent = "Could not load call: " + e.message;
+  }
+}
+
+async function init(selectId) {
+  try {
+    const id = await loadList(selectId);
+    if (id !== null) show(id);
+  } catch (e) {
+    $("meta").textContent = "Could not reach the backend at " + API + ": " + e.message;
+  }
+}
+
+$("callSelect").addEventListener("change", (e) => show(e.target.value));
+$("refresh").addEventListener("click", () => init($("callSelect").value));
+init(new URLSearchParams(location.search).get("call"));
+</script>
+</body>
+</html>
